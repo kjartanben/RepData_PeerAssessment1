@@ -1,25 +1,67 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "RepData_Assignment1"
+author: "KBen"
+date: "Sunday, June 14, 2015"
+output: html_document
 ---
 
-
 ## Loading and preprocessing the data
+ind contains the indexes for omitting NA steps
 
-
+```{r, echo=TRUE}
+data <- read.csv("activity.csv")
+ind = !is.na(data$steps)
+```
 
 ## What is mean total number of steps taken per day?
+```{r, echo=TRUE}
+num.steps.day <- with(data[ind,] ,tapply(steps,date,sum))
+     
+library(ggplot2)
+qplot(num.steps.day, geom="histogram",xlab="steps per day",main="Histogram of total number of steps with omitted NA values")
+     
+mean(num.steps.day,na.rm=T )
+median(num.steps.day,na.rm=T )
 
-
+```
 
 ## What is the average daily activity pattern?
+```{r, echo=TRUE}
+mean.interval <- with(data[ind,] ,tapply(steps,interval,mean))
+plot(mean.interval,type="l")
 
-
+mean.interval[which.max(mean.interval)]
+```
 
 ## Imputing missing values
+The number of NA values
+```{r, echo=TRUE}
+sum(!ind)
+```
 
+A strategy for filling in all of the missing values in the dataset. Using the mean for the 5-minute interval
+```{r, echo=TRUE}
+data.f <- data
+data.f$steps[!ind] <- mean.interval[as.character(data.f$interval[!ind])]
 
+num.steps.day.f <- with(data.f ,tapply(steps,date,sum))
 
-## Are there differences in activity patterns between weekdays and weekends?
+qplot(num.steps.day.f, geom="histogram",xlab="steps per day",main="Histogram of total number of steps with imputed NA values")
+
+mean(num.steps.day.f,na.rm=T )
+median(num.steps.day.f,na.rm=T )
+```
+
+The mean and median are now the same. The mean is the same as with the data with NA omitted.
+
+##Are there differences in activity patterns between weekdays and weekends?
+```{r, echo=TRUE}
+data.f$w.day = "weekday"
+data.f$w.day[weekdays(as.Date(data.f$date)) %in% c('laugardagur','sunnudagur')] = "weekend"
+data.f$w.day = as.factor(data.f$w.day)
+
+library(lattice)
+xyplot(steps~interval|w.day,data=data.f[order(data.f$interval),],type="l",horizontal=T)
+```
+
+People start activities later in the weekends
